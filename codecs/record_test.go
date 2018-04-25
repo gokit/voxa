@@ -122,10 +122,12 @@ func TestRecordCodec_NativeToBinary_StructWithList(t *testing.T) {
 		Name       string   `id:"2"`
 		Address    string   `id:"3"`
 		OtherNames []string `id:"4"`
+		Bits       []byte   `id:"5"`
 	}{
 		Age:        20,
 		Name:       "bob",
 		Address:    "20. Classy Street",
+		Bits:       []byte("20. Classy"),
 		OtherNames: []string{"Rick Woss", "Ross Rics", "Frilino Felioi"},
 	}
 
@@ -146,6 +148,7 @@ func TestRecordCodec_NativeToBinary_StructWithList(t *testing.T) {
 		Name       string   `id:"2"`
 		Address    string   `id:"3"`
 		OtherNames []string `id:"4"`
+		Bits       []byte   `id:"5"`
 	}{})
 
 	err = codec.BinaryToNative(encoded, reflect.ValueOf(res))
