@@ -16,8 +16,11 @@ var (
 	// ErrValueUnsettable is returned when the reflect.Value is not settable.
 	ErrValueUnsettable = errors.New("value can not be set on reflect type")
 
+	// ErrInvalidNoSize is returned when provided data slice fails to match length standard.
+	ErrInvalidNoSize = errors.New("invalid data, byte slice must have length length")
+
 	// ErrInvalidDataSlice is returned when provided data slice fails to match length standard.
-	ErrInvalidDataSlice = errors.New("invalid data, byte slice must be minimum 3 in length")
+	ErrInvalidDataSlice = errors.New("invalid data, byte slice not matching expected data frame length")
 
 	// ErrNotList is returned when data slice provided is not a voxa.List type.
 	ErrNotList = errors.New("data item is not a list")
@@ -38,7 +41,7 @@ type ListCodec struct{}
 func (lc ListCodec) BinaryToNative(b []byte, target interface{}) (interface{}, error) {
 	xl, read := DecodeVarInt64(b)
 	if xl == 0 {
-		return nil, ErrInvalidDataSlice
+		return nil, ErrInvalidNoSize
 	}
 
 	headerFrame := b[:read+2]
@@ -79,7 +82,7 @@ func (lc ListCodec) BinaryToNative(b []byte, target interface{}) (interface{}, e
 	for len(dataFrame) > 0 {
 		subXL, subRead := DecodeVarInt64(dataFrame)
 		if subXL == 0 {
-			return nil, ErrInvalidDataSlice
+			return nil, ErrInvalidNoSize
 		}
 
 		totalFrame := subRead + int(subXL)
@@ -95,6 +98,9 @@ func (lc ListCodec) BinaryToNative(b []byte, target interface{}) (interface{}, e
 			itemCount := countBinaryItems(subDataFrame[2:])
 			newValue = reflect.MakeSlice(typeKind, 0, int(itemCount))
 			subDataFrame = frame
+		case voxa.Record:
+			newValue = reflect.New(typeKind)
+			subDataFrame = frame
 		default:
 			newValue = reflect.New(typeKind).Elem()
 		}
@@ -102,6 +108,10 @@ func (lc ListCodec) BinaryToNative(b []byte, target interface{}) (interface{}, e
 		newValue, err = lc.binaryToNativeItem(atom, subDataFrame, newValue)
 		if err != nil && err != ErrSkipErr {
 			return nil, err
+		}
+
+		if typeKind.Kind() != reflect.Ptr && newValue.Kind() == reflect.Ptr {
+			newValue = newValue.Elem()
 		}
 
 		itemVal = reflect.Append(itemVal, newValue)

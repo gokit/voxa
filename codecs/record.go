@@ -54,7 +54,7 @@ type RecordCodec struct{}
 func (lc RecordCodec) BinaryToNative(b []byte, target interface{}) error {
 	xl, read := DecodeVarInt64(b)
 	if xl == 0 {
-		return ErrInvalidDataSlice
+		return ErrInvalidNoSize
 	}
 
 	headerFrame := b[:read+2]
@@ -104,7 +104,7 @@ func (lc RecordCodec) binaryToNativeWithParent(dataFrame []byte, parent reflect.
 	for len(dataFrame) > 0 {
 		subXL, subRead := DecodeVarInt64(dataFrame)
 		if subXL == 0 {
-			return ErrInvalidDataSlice
+			return ErrInvalidNoSize
 		}
 
 		totalFrame := subRead + int(subXL)
