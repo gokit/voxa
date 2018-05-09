@@ -1,5 +1,8 @@
 Voxa
 ------------
+[![Go Report Card](https://goreportcard.com/badge/github.com/wirekit/voxa)](https://goreportcard.com/report/github.com/wirekit/voxa)
+[![Travis CI](https://travis-ci.org/wirekit/voxa.svg?master=branch)](https://travis-ci.org/wirekit/voxa)
+
 Voxa is a binary-compact message format suitable for delivery Go types over the wire with minimal memory usage.
 It removes all meta-data and encodes into a binary format where a struct fields are simply marked by a id value, this
 makes it highly unsuitable for map types.
