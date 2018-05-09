@@ -1,6 +1,5 @@
 coverage:
-
-build:
-
+    go test -coverage ./codecs/...
 
 tests:
+    go test -v ./codecs/...
