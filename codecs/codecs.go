@@ -31,6 +31,7 @@ var (
 	floatCodec  FloatCodec
 	textCodec   TextCodec
 	bytesCodec  BytesCodec
+	byteCodec   ByteCodec
 	boolCodec   BooleanCodec
 	listCodec   ListCodec
 	recordCodec RecordCodec

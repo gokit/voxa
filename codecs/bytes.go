@@ -45,3 +45,28 @@ func (BytesCodec) NativeToTextual(b interface{}, c []byte) ([]byte, error) {
 	}
 	return nil, errors.New("type is not a []byte")
 }
+
+var _ voxa.Codec = ByteCodec{}
+
+type ByteCodec struct{}
+
+func (ByteCodec) BinaryToNative(b []byte) (interface{}, voxa.FieldID, error) {
+	if len(b) != 3 {
+		return nil, 0, errors.New("byte slice must be of length 2")
+	}
+
+	id := voxa.FieldID(b[1])
+	if voxa.Atom(b[0]) != voxa.Boolean {
+		return nil, id, errors.New("byte slice must have supported type marker")
+	}
+
+	return b[2], id, nil
+}
+
+func (ByteCodec) NativeToBinary(b interface{}, id voxa.FieldID, c []byte) ([]byte, error) {
+	if bu, ok := b.(byte); ok {
+		return append(c, byte(voxa.Bit), byte(id), bu), nil
+	}
+
+	return nil, errors.New("type is not a byte")
+}

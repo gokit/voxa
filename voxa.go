@@ -59,6 +59,7 @@ var (
 const (
 	Invalid Atom = iota
 	Text
+	Bit
 	Int
 	Int8
 	Int16
@@ -114,6 +115,8 @@ func (a Atom) String() string {
 		return "float32"
 	case Float64:
 		return "float64"
+	case Bit:
+		return "bit/byte"
 	case Bytes:
 		return "bytes"
 	case List:
@@ -159,6 +162,12 @@ type Codec interface {
 	// into the provided byte slice, returning provided byte slice
 	// with new length.
 	NativeToBinary(interface{}, FieldID, []byte) ([]byte, error)
+}
+
+// CodecTextual defines a type which include textual to native and vice-versal
+// conversion methods.
+type CodecTextual interface {
+	Codec
 
 	// TextualToNative takes giving byte slice containing text version
 	// and attempts to convert into native.

@@ -300,3 +300,72 @@ func TestRecordCodec_NativeToBinary_StructWithNestedStructList(t *testing.T) {
 	}
 	tests.Passed("Should have matching elements between input and res")
 }
+
+func TestRecordCodec_NativeToBinary_Map(t *testing.T) {
+	record := map[interface{}]interface{}{
+		"age":     20,
+		"name":    "bob",
+		"address": "20. Classy Street",
+		"date":    time.Now(),
+	}
+
+	var codec codecs.RecordCodec
+	encoded, err := codec.NativeToBinary(record, []byte{})
+	if err != nil {
+		tests.FailedWithError(err, "Should have successfully encoded value with record codec")
+	}
+	tests.Passed("Should have successfully encoded value with record codec")
+
+	if jsonEncoded, err := json.Marshal(record); err == nil {
+		tests.Info("JSON Encoded Length: %d", len(jsonEncoded))
+		tests.Info("Voxa Encoded Length: %d", len(encoded))
+	}
+
+	res := &(map[interface{}]interface{}{})
+	err = codec.BinaryToNative(encoded, reflect.ValueOf(res))
+	if err != nil {
+		tests.FailedWithError(err, "Should have successfully decoded value with record codec")
+	}
+	tests.Passed("Should have successfully decoded value with record codec")
+
+	if !matchAllIn(getValues(record), getValues(*res)) {
+		tests.Failed("Should have matching values in input and output")
+	}
+	tests.Passed("Should have matching values in input and output")
+}
+
+func getValues(m map[interface{}]interface{}) []interface{} {
+	var items []interface{}
+	for _, val := range m {
+		if tval, ok := val.(time.Time); ok {
+			items = append(items, tval.Unix())
+			continue
+		}
+		items = append(items, val)
+	}
+	return items
+}
+
+func matchAllIn(v, r []interface{}) bool {
+	if len(v) != len(r) {
+		return false
+	}
+	for _, k := range v {
+		if !find(k, r) {
+			return false
+		}
+	}
+	return true
+}
+
+func find(v interface{}, r []interface{}) bool {
+	for _, k := range r {
+		if k == v {
+			return true
+		}
+		if reflect.DeepEqual(k, v) {
+			return true
+		}
+	}
+	return false
+}

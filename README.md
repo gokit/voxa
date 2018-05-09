@@ -1,11 +1,31 @@
 Voxa
 ------------
-Voxa is a binary-compact message format suitable for delivery Go types over the wire with minimal memory usage. It provides
-a schemaless binary format where a struct details the desired data to be delivered over the wire.
+Voxa is a binary-compact message format suitable for delivery Go types over the wire with minimal memory usage.
+It removes all meta-data and encodes into a binary format where a struct fields are simply marked by a id value, this
+makes it highly unsuitable for map types.
 
 Voxa uses `id` tags as the means of identifying fields to be encoded and fields which would receive said encoding, where
 associated types must match.
 
+## Supported Types
+
+Voxa has working support for most Go types as listed below:
+
+- bool
+- string
+- int/uint
+- int8/uint8/byte
+- int16/uint16
+- int32/uint32
+- int64/uint64
+- float32/float64
+- Struct
+- []byte
+- []{string, uint8/16/32/64, int8/16/32/64, float32/64, Struct}
+
+In voxa, `Maps` are special in time, they do not contain any meta-data like structs about the fields, hence when
+voxa decodes an encoded map, it uses the id values has keys. Hence its requires more work to get such information properly, which
+makes the use of struct's more suitable.
 
 ## Install
 

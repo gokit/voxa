@@ -22,6 +22,12 @@ var (
 	// ErrTagMustBeUniqueToField is returned when a tag id number is found in another field.
 	ErrTagMustBeUniqueToField = errors.New("id tag number already used")
 
+	// ErrUnknownType is returned when type cant be processed.
+	ErrUnknownType = errors.New("type unknown")
+
+	// ErrUnknownTypeForMap is returned when type cant be made for when creating a map.
+	ErrUnknownTypeForMap = errors.New("type unsupported for maps")
+
 	// ErrTagMustBeNumber is returned when a tag contains more than digit values.
 	ErrTagMustBeNumber = errors.New("id tag must contain only digits")
 
@@ -30,23 +36,23 @@ var (
 )
 
 var (
-	mapType       = (*map[int]interface{})(nil)
+	mapType       = (*map[interface{}]interface{})(nil)
 	listSliceType = (*[]interface{})(nil)
-	//boolSliceType    = (*[]bool)(nil)
-	//intSliceType     = (*[]int)(nil)
-	//byteSliceType    = (*[]byte)(nil)
-	//int8SliceType    = (*[]int8)(nil)
-	//int16SliceType   = (*[]int16)(nil)
-	//int32SliceType   = (*[]int32)(nil)
-	//int64SliceType   = (*[]int64)(nil)
-	//uintSliceType    = (*[]uint)(nil)
-	//uint8SliceType   = (*[]uint8)(nil)
-	//uint16SliceType  = (*[]uint16)(nil)
-	//uint32SliceType  = (*[]uint32)(nil)
-	//uint64SliceType  = (*[]uint64)(nil)
-	//stringSliceType  = (*[]string)(nil)
-	//float32SliceType = (*[]float32)(nil)
-	//float64SliceType = (*[]float64)(nil)
+	byteSliceType = (*[]byte)(nil)
+	boolType      = (*bool)(nil)
+	intType       = (*int)(nil)
+	int8Type      = (*int8)(nil)
+	int16Type     = (*int16)(nil)
+	int32Type     = (*int32)(nil)
+	int64Type     = (*int64)(nil)
+	uintType      = (*uint)(nil)
+	uint8Type     = (*uint8)(nil)
+	uint16Type    = (*uint16)(nil)
+	uint32Type    = (*uint32)(nil)
+	uint64Type    = (*uint64)(nil)
+	stringType    = (*string)(nil)
+	float32Type   = (*float32)(nil)
+	float64Type   = (*float64)(nil)
 )
 
 type RecordCodec struct{}
@@ -138,7 +144,7 @@ func (lc RecordCodec) binaryToNativeWithParent(dataFrame []byte, parent reflect.
 		}
 
 		// get new version value field.
-		if err := lc.binaryToNativeItem(subDataFrame, total, atom, parent, field); err != nil && err != ErrSkipErr {
+		if err := lc.binaryToNativeItem(subDataFrame, int(hid), total, atom, parent, field); err != nil && err != ErrSkipErr {
 			return err
 		}
 
@@ -153,7 +159,7 @@ func (lc RecordCodec) binaryToNativeWithParent(dataFrame []byte, parent reflect.
 // into the provided reflect.Value, it ensures the internal data field ID attached in the encoded
 // data match the provided. It returns an error if the id does not match, or if the value could not
 // be decoded safely, more so, the value must be settable.
-func (lc RecordCodec) binaryToNativeItem(data []byte, count int, atom voxa.Atom, parent reflect.Value, field reflect.StructField) error {
+func (lc RecordCodec) binaryToNativeItem(data []byte, pos int, count int, atom voxa.Atom, parent reflect.Value, field reflect.StructField) error {
 	var dest reflect.Value
 
 	if field.Type != nil {
@@ -172,9 +178,10 @@ func (lc RecordCodec) binaryToNativeItem(data []byte, count int, atom voxa.Atom,
 	} else {
 		switch atom {
 		case voxa.List:
-			dest = reflect.New(reflect.TypeOf(listSliceType))
+			target := make([]interface{}, count)
+			dest = reflect.ValueOf(target)
 		case voxa.Record:
-			dest = reflect.New(reflect.TypeOf(mapType))
+			dest = reflect.ValueOf([]map[interface{}]interface{}{})
 		}
 	}
 
@@ -201,32 +208,32 @@ func (lc RecordCodec) binaryToNativeItem(data []byte, count int, atom voxa.Atom,
 			return err
 		}
 
-		dest.Set(reflect.ValueOf(value))
+		dest = reflect.ValueOf(value)
 	case voxa.Time:
 		value, _, err := timeCodec.BinaryToNative(data)
 		if err != nil {
 			return err
 		}
 
-		dest.Set(reflect.ValueOf(value))
+		dest = reflect.ValueOf(value)
 	case voxa.Bytes:
 		value, _, err := bytesCodec.BinaryToNative(data)
 		if err != nil {
 			return err
 		}
-		dest.Set(reflect.ValueOf(value))
+		dest = reflect.ValueOf(value)
 	case voxa.Boolean:
 		value, _, err := boolCodec.BinaryToNative(data)
 		if err != nil {
 			return err
 		}
-		dest.Set(reflect.ValueOf(value))
+		dest = reflect.ValueOf(value)
 	case voxa.Float64, voxa.Float32:
 		value, _, err := floatCodec.BinaryToNative(data)
 		if err != nil {
 			return err
 		}
-		dest.Set(reflect.ValueOf(value))
+		dest = reflect.ValueOf(value)
 	case voxa.Int, voxa.UInt, voxa.UInt8, voxa.UInt16, voxa.UInt32, voxa.UInt64,
 		voxa.Int8, voxa.Int16, voxa.Int32, voxa.Int64:
 		value, _, err := intCodec.BinaryToNative(data)
@@ -234,16 +241,22 @@ func (lc RecordCodec) binaryToNativeItem(data []byte, count int, atom voxa.Atom,
 			return err
 		}
 
-		dest.Set(reflect.ValueOf(value))
+		dest = reflect.ValueOf(value)
 	default:
 		return errors.New("unknown type")
 	}
 
 	switch parent.Kind() {
 	case reflect.Struct:
-		parent.FieldByName(field.Name).Set(dest)
+		ff := parent.FieldByName(field.Name)
+
+		if ff.Kind() != reflect.Ptr && dest.Kind() == reflect.Ptr {
+			dest = dest.Elem()
+		}
+
+		ff.Set(dest)
 	case reflect.Map:
-		parent.SetMapIndex(reflect.ValueOf(int(data[0])), dest)
+		parent.SetMapIndex(reflect.ValueOf(pos), dest)
 	}
 
 	return nil
@@ -277,7 +290,7 @@ func (lc RecordCodec) NativeToBinaryFrom(b interface{}, id voxa.FieldID, c []byt
 	case reflect.Map:
 		for id, key := range item.MapKeys() {
 			indexValue := item.MapIndex(key)
-			base, err = nativeItemToBinary(indexValue.Interface(), voxa.FieldID(id), base)
+			base, err = nativeItemToBinary(indexValue.Interface(), voxa.FieldID(id+1), base)
 			if err != nil && err != ErrSkipErr {
 				return c, err
 			}
