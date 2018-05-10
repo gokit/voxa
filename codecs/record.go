@@ -277,10 +277,10 @@ func (lc RecordCodec) NativeToBinaryFrom(b interface{}, id voxa.FieldID, c []byt
 	}
 
 	itemTypeElem := item.Type()
-	itemTypeSizeUPtr := int(itemTypeElem.Size())
-	itemTypeConservativeSize := itemTypeSizeUPtr
+	//itemTypeSizeUPtr := int(itemTypeElem.Size()) * 128
+	//itemTypeConservativeSize := itemTypeSizeUPtr
 
-	buffer := slicePool.Get(itemTypeConservativeSize)
+	buffer := slicePool.Get(1024)
 	defer buffer.Discard()
 
 	var err error

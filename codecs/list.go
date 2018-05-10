@@ -208,7 +208,7 @@ func (lc ListCodec) NativeToBinaryFrom(b interface{}, id voxa.FieldID, c []byte)
 	itemType := item.Type()
 	itemTypeElem := itemType.Elem()
 	itemTypeSizeUPtr := int(itemTypeElem.Size())
-	itemTypeConservativeSize := itemTypeSizeUPtr * totalElements
+	itemTypeConservativeSize := itemTypeSizeUPtr * totalElements * 128
 
 	buffer := slicePool.Get(itemTypeConservativeSize)
 	defer buffer.Discard()
@@ -241,10 +241,7 @@ func nativeItemToBinary(b interface{}, id voxa.FieldID, c []byte) ([]byte, error
 
 	switch itemType.Kind() {
 	case reflect.Bool:
-		content := slicePool.Get(32)
-		defer content.Discard()
-
-		encoded, err := boolCodec.NativeToBinary(b, id, content.Data[:0])
+		encoded, err := boolCodec.NativeToBinary(b, id, nil)
 		if err != nil {
 			return nil, err
 		}
